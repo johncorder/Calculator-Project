@@ -1,0 +1,2472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Designer - Basic</title>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #0f172a;
+        }
+        
+        #root {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .toolbox {
+            width: 250px;
+            background: #1e293b;
+            border-right: 2px solid #334155;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .toolbox h2 {
+            color: #f1f5f9;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .toolbox-section {
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        
+        .product-item {
+            width: 80px;
+            height: 45px;
+            margin-bottom: 12px;
+            border-radius: 0px;
+            cursor: grab;
+            border: 2px solid;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 11px;
+        }
+        
+        .product-item:active {
+            cursor: grabbing;
+        }
+        
+        .tool-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid #334155;
+            background: #1e293b;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .tool-item:hover {
+            transform: translateY(-2px);
+            background: #334155;
+        }
+        
+        .tool-item.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+        
+        .tool-item.eraser.active {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+        
+        .tool-icon {
+            font-size: 20px;
+        }
+        
+        .squiggle-trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #3b82f6;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 25;
+            opacity: 0.7;
+            animation: fadeOut 0.5s ease-out forwards;
+        }
+        
+        .squiggle-trail.eraser {
+            background: #ef4444;
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+        }
+        
+        .drawing-path-line {
+            position: absolute;
+            stroke-width: 3;
+            fill: none;
+            pointer-events: none;
+            z-index: 25;
+            opacity: 0.8;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .drawing-path-line.fading {
+            opacity: 0;
+        }
+        
+        .array-panel {
+            position: absolute;
+            background: #1e293b;
+            border: 3px solid #3b82f6;
+            border-radius: 8px;
+            padding: 16px;
+            z-index: 150;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        
+        .array-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .array-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .array-label {
+            color: #cbd5e1;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .array-input {
+            width: 60px;
+            padding: 6px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 4px;
+            color: #f1f5f9;
+            font-size: 16px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .array-button {
+            padding: 8px 16px;
+            background: #3b82f6;
+            border: none;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .array-button:hover {
+            background: #2563eb;
+        }
+        
+        .array-preview-block {
+            position: absolute;
+            border: 2px dashed #3b82f6;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.1);
+            pointer-events: none;
+            z-index: 50;
+            transition: all 0.15s ease;
+        }
+        
+        .array-preview-block.origin {
+            background: rgba(59, 130, 246, 0.2);
+            border-style: solid;
+        }
+        
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .color-swatch {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .color-swatch:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .color-swatch.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #3b82f6;
+        }
+        
+        .product-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .product-name {
+            color: white;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .product-info {
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+        }
+        
+        .workspace {
+            flex: 1;
+            position: relative;
+            background: #0a1628;
+            overflow: hidden;
+            cursor: grab;
+        }
+        
+        .workspace.panning {
+            cursor: grabbing;
+        }
+        
+        .grid-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8000px;
+            height: 6000px;
+            background-color: #0a1628;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.15) 0.5px, transparent 0.5px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0.5px, transparent 0.5px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+        
+        .block {
+            position: absolute;
+            width: 80px;
+            height: 45px;
+            border-radius: 0px;
+            border: 1px solid rgba(51, 65, 85, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: move;
+            user-select: none;
+            transition: box-shadow 0.2s;
+            touch-action: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .block.dragging {
+            opacity: 0.5;
+        }
+        
+        .block:hover {
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        
+        .block-label {
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .block-type {
+            color: rgba(255,255,255,0.7);
+            font-size: 9px;
+            margin-top: 4px;
+        }
+        
+        .chain-indicator {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        .chain-start {
+            border-radius: 50%;
+        }
+        
+        .chain-end {
+            border-radius: 0;
+        }
+        
+        .connection-line {
+            position: absolute;
+            background: #3b82f6;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .connection-line.error {
+            background: #ef4444;
+        }
+        
+        .instructions h3 {
+            color: #f1f5f9;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .instructions div {
+            margin: 4px 0;
+            line-height: 1.5;
+        }
+        
+        .disclaimer {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #334155;
+            font-size: 11px;
+            color: #94a3b8;
+            font-style: italic;
+            line-height: 1.5;
+        }
+        
+        .tips-box {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid #334155;
+        }
+        
+        .tips-label {
+            color: #3b82f6;
+            font-weight: 700;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .tip-content {
+            font-size: 12px;
+            color: #cbd5e1;
+            min-height: 36px;
+            line-height: 1.5;
+        }
+        
+        .signal-counter {
+            margin-top: 16px;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 6px;
+        }
+        
+        .counter-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .counter-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 11px;
+        }
+        
+        .counter-color {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .counter-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .counter-value {
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+            width: 210px;
+        }
+        
+        .zoom-btn {
+            width: 36px;
+            height: 36px;
+            background: #334155;
+            border: none;
+            border-radius: 4px;
+            color: #f1f5f9;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .zoom-btn:hover {
+            background: #475569;
+        }
+        
+        .zoom-level {
+            color: #cbd5e1;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .history-controls {
+            position: absolute;
+            top: 20px;
+            left: 250px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+        
+        .history-btn {
+            width: 36px;
+            height: 36px;
+            background: #334155;
+            border: none;
+            border-radius: 4px;
+            color: #f1f5f9;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .history-btn:hover:not(:disabled) {
+            background: #475569;
+        }
+        
+        .history-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .clear-cables-banner {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc2626;
+            border: 2px solid #b91c1c;
+            border-radius: 8px;
+            padding: 12px 24px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .clear-cables-banner:hover {
+            background: #b91c1c;
+        }
+        
+        .instructions {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            color: #cbd5e1;
+            font-size: 13px;
+            width: 280px;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        
+        .instructions.hidden {
+            transform: translateX(calc(100% + 20px));
+        }
+        
+        .instructions-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #f1f5f9;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 101;
+            transition: all 0.2s;
+        }
+        
+        .instructions-toggle:hover {
+            background: #334155;
+        }
+        
+        .hide-button {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #334155;
+            border: none;
+            border-radius: 4px;
+            color: #cbd5e1;
+            font-size: 16px;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .hide-button:hover {
+            background: #475569;
+        }
+        
+        .advanced-mode-window {
+            position: absolute;
+            top: 96px;
+            left: 20px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            color: #cbd5e1;
+            font-size: 13px;
+            width: 210px;
+            z-index: 100;
+        }
+        
+        .advanced-mode-toggle {
+            padding: 8px 12px;
+            background: #334155;
+            border: 2px solid #475569;
+            border-radius: 6px;
+            color: #f1f5f9;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .advanced-mode-toggle:hover {
+            background: #475569;
+        }
+        
+        .advanced-mode-toggle.active {
+            background: #3b82f6;
+            border-color: #2563eb;
+        }
+        
+        .advanced-controls {
+            padding-top: 12px;
+            border-top: 1px solid #334155;
+        }
+        
+        .signal-counter-window {
+            position: absolute;
+            left: 20px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            color: #cbd5e1;
+            font-size: 13px;
+            width: 210px;
+            z-index: 100;
+            transition: top 0.3s ease;
+        }
+        
+        .signal-counter-window.collapsed {
+            top: 180px;
+        }
+        
+        .signal-counter-window.expanded {
+            top: 362px;
+        }
+        
+        .advanced-input-group {
+            margin-bottom: 8px;
+        }
+        
+        .advanced-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .advanced-input {
+            width: 100%;
+            padding: 6px 8px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 4px;
+            color: #f1f5f9;
+            font-size: 13px;
+            box-sizing: border-box;
+        }
+        
+        .advanced-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        .dimensions-display {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 4px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        .dimensions-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .dimensions-value {
+            font-size: 13px;
+            color: #3b82f6;
+            font-weight: 700;
+        }
+        
+        .pixel-count {
+            font-size: 10px;
+            color: #64748b;
+            margin-left: 4px;
+        }
+        
+        .connection-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #3b82f6;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 20;
+            transition: transform 0.2s;
+        }
+        
+        .connection-point:hover {
+            transform: scale(1.5);
+            background: #22c55e;
+        }
+        
+        .connection-point.active {
+            background: #22c55e;
+            transform: scale(1.3);
+        }
+        
+        .drawing-line {
+            position: absolute;
+            background: #3b82f6;
+            height: 3px;
+            pointer-events: none;
+            z-index: 15;
+            opacity: 0.6;
+        }
+        
+        .workspace.pen-tool {
+            cursor: crosshair;
+        }
+        
+        .workspace.eraser-tool {
+            cursor: crosshair;
+        }
+        
+        .workspace.panning {
+            cursor: move !important;
+        }
+        
+        .canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8000px;
+            height: 6000px;
+            transform-origin: 0 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        const { useState, useRef, createElement: h } = React;
+
+        const PRODUCTS = {
+            standard: { name: 'Standard', color: '#94a3b8', label: '16:9' },
+        };
+        
+        const SIGNAL_COLORS = [
+            { id: 'signal1', name: 'Signal 1', color: '#86efac' }, // green (cool)
+            { id: 'signal2', name: 'Signal 2', color: '#fcd34d' }, // yellow (warm) - swapped from 8
+            { id: 'signal3', name: 'Signal 3', color: '#38bdf8' }, // sky (cool) - swapped from 9
+            { id: 'signal4', name: 'Signal 4', color: '#fb923c' }, // orange (warm)
+            { id: 'signal5', name: 'Signal 5', color: '#a78bfa' }, // purple (cool)
+            { id: 'signal6', name: 'Signal 6', color: '#f87171' }, // red (warm)
+            { id: 'signal7', name: 'Signal 7', color: '#2dd4bf' }, // teal (cool)
+            { id: 'signal8', name: 'Signal 8', color: '#fbbf24' }, // amber (warm) - swapped from 2
+            { id: 'signal9', name: 'Signal 9', color: '#60a5fa' }, // blue (cool) - swapped from 3
+            { id: 'signal10', name: 'Signal 10', color: '#e879f9' }, // magenta (warm)
+        ];
+
+        const GRID_SIZE = 160; // Match block width for better alignment
+
+        function ConnectionLines({ blocks, connections }) {
+            const lines = [];
+            
+            connections.forEach((conn, idx) => {
+                const fromBlock = blocks.find(b => b.id === conn.from);
+                const toBlock = blocks.find(b => b.id === conn.to);
+                
+                if (!fromBlock || !toBlock) return;
+                
+                const x1 = fromBlock.x + BLOCK_WIDTH / 2;
+                const y1 = fromBlock.y + BLOCK_HEIGHT / 2;
+                const x2 = toBlock.x + BLOCK_WIDTH / 2;
+                const y2 = toBlock.y + BLOCK_HEIGHT / 2;
+                
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                
+                // Get signal color if assigned, default to blue
+                const signalColor = conn.color ? SIGNAL_COLORS.find(s => s.id === conn.color)?.color : '#3b82f6';
+                
+                lines.push(h('div', {
+                    key: `conn-${idx}`,
+                    className: 'connection-line',
+                    style: {
+                        left: x1 + 'px',
+                        top: y1 + 'px',
+                        width: length + 'px',
+                        height: '3px',
+                        background: signalColor,
+                        transform: `rotate(${angle}deg)`,
+                        transformOrigin: '0 50%',
+                    }
+                }));
+            });
+            
+            return lines;
+        }
+
+        const BLOCK_WIDTH = 80;
+        const BLOCK_HEIGHT = 45;
+
+        function Toolbox({ onDragStart, selectedTool, onSelectTool, selectedColor, onSelectColor }) {
+            return h('div', { className: 'toolbox' },
+                h('h2', null, 'Product Designer'),
+                
+                // Tools Section
+                h('div', { className: 'toolbox-section' },
+                    h('div', { className: 'section-title' }, 'Tools'),
+                    h('div', {
+                        className: 'tool-item' + (selectedTool === 'select' ? ' active' : ''),
+                        onClick: () => onSelectTool('select')
+                    },
+                        h('svg', { className: 'tool-icon', viewBox: '0 0 24 24', width: '20', height: '20' },
+                            h('path', { d: 'M12 2L6 8h4v8h4V8h4z', fill: 'currentColor' }),
+                            h('path', { d: 'M2 12l6-6v4h8v4H8v4z', fill: 'currentColor' }),
+                            h('path', { d: 'M16 16v-4h4l-6 6l-6-6h4v4z', fill: 'currentColor' }),
+                            h('path', { d: 'M16 8V4h4l-6-6l-6 6h4v4z', fill: 'currentColor' })
+                        ),
+                        h('span', null, 'Move')
+                    ),
+                    h('div', {
+                        className: 'tool-item' + (selectedTool === 'array' ? ' active' : ''),
+                        onClick: () => onSelectTool('array')
+                    },
+                        h('svg', { className: 'tool-icon', viewBox: '0 0 24 24', width: '20', height: '20' },
+                            h('rect', { x: '2', y: '14', width: '8', height: '8', fill: 'currentColor' }),
+                            h('rect', { x: '2', y: '2', width: '8', height: '8', fill: 'none', stroke: '#94a3b8', strokeWidth: '1.5' }),
+                            h('rect', { x: '14', y: '2', width: '8', height: '8', fill: 'none', stroke: '#94a3b8', strokeWidth: '1.5' }),
+                            h('rect', { x: '14', y: '14', width: '8', height: '8', fill: 'none', stroke: '#94a3b8', strokeWidth: '1.5' })
+                        ),
+                        h('span', null, 'Edit Array')
+                    ),
+                    h('div', {
+                        className: 'tool-item' + (selectedTool === 'pen' ? ' active' : ''),
+                        onClick: () => onSelectTool('pen')
+                    },
+                        h('svg', { className: 'tool-icon', viewBox: '0 0 24 24', width: '20', height: '20' },
+                            h('line', { x1: '12', y1: '2', x2: '12', y2: '22', stroke: 'currentColor', strokeWidth: '2' }),
+                            h('line', { x1: '2', y1: '12', x2: '22', y2: '12', stroke: 'currentColor', strokeWidth: '2' })
+                        ),
+                        h('span', null, 'Add Cable')
+                    ),
+                    h('div', {
+                        className: 'tool-item eraser' + (selectedTool === 'eraser' ? ' active' : ''),
+                        onClick: () => onSelectTool('eraser')
+                    },
+                        h('svg', { className: 'tool-icon', viewBox: '0 0 24 24', width: '20', height: '20' },
+                            h('line', { x1: '5', y1: '5', x2: '19', y2: '19', stroke: 'currentColor', strokeWidth: '2' }),
+                            h('line', { x1: '19', y1: '5', x2: '5', y2: '19', stroke: 'currentColor', strokeWidth: '2' })
+                        ),
+                        h('span', null, 'Remove Cable')
+                    ),
+                    h('div', {
+                        className: 'tool-item' + (selectedTool === 'paint' ? ' active' : ''),
+                        onClick: () => onSelectTool('paint')
+                    },
+                        h('svg', { className: 'tool-icon', viewBox: '0 0 24 24', width: '20', height: '20' },
+                            h('circle', { cx: '12', cy: '12', r: '8', fill: 'none', stroke: 'currentColor', strokeWidth: '2' }),
+                            h('circle', { cx: '12', cy: '12', r: '4', fill: 'currentColor' })
+                        ),
+                        h('span', null, 'Signal Bucket')
+                    )
+                ),
+                
+                // Color Palette - only show when paint tool is selected
+                selectedTool === 'paint' && h('div', { className: 'toolbox-section' },
+                    h('div', { className: 'section-title' }, 'Signal Bucket'),
+                    h('div', { className: 'color-palette' },
+                        SIGNAL_COLORS.map(signal =>
+                            h('div', {
+                                key: signal.id,
+                                className: 'color-swatch' + (selectedColor === signal.id ? ' active' : ''),
+                                style: { background: signal.color },
+                                onClick: () => onSelectColor(signal.id),
+                                title: signal.name
+                            })
+                        )
+                    )
+                ),
+                
+                // Products Section
+                h('div', { className: 'toolbox-section' },
+                    h('div', { className: 'section-title' }, 'Products'),
+                    Object.entries(PRODUCTS).map(([key, product]) =>
+                        h('div', {
+                            key: key,
+                            className: 'product-item',
+                            draggable: true,
+                            onDragStart: (e) => onDragStart(e, key),
+                            style: {
+                                background: product.color,
+                                borderColor: product.color,
+                            }
+                        }, product.name)
+                    )
+                )
+            );
+        }
+
+        function Block({ block, onDragStart, onDrag, onDragEnd, chainInfo, chainColor, onDelete, isDragging, selectedTool, onBlockMouseDown, onBlockMouseEnter, isInDrawPath }) {
+            const product = PRODUCTS[block.type];
+            const info = chainInfo[block.id] || {};
+            
+            // Default chain color is blue if not specified
+            const indicatorColor = chainColor || '#3b82f6';
+            
+            return h('div', {
+                className: 'block' + 
+                    (isDragging && block.id === isDragging ? ' dragging' : '') +
+                    (isInDrawPath ? ' hovered-during-draw' : ''),
+                style: {
+                    left: block.x + 'px',
+                    top: block.y + 'px',
+                    background: product.color,
+                    cursor: selectedTool === 'select' ? 'move' : selectedTool === 'array' ? 'pointer' : selectedTool === 'paint' ? 'crosshair' : 'crosshair'
+                },
+                draggable: selectedTool === 'select',
+                onDragStart: (e) => {
+                    if (selectedTool !== 'select') {
+                        e.preventDefault();
+                        return;
+                    }
+                    const img = new Image();
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    e.dataTransfer.setDragImage(img, 0, 0);
+                    onDragStart(e, block.id);
+                },
+                onDrag: onDrag,
+                onDragEnd: onDragEnd,
+                onMouseDown: (e) => {
+                    // Only allow left mouse button (button 0) for tool interactions
+                    if (selectedTool !== 'select' && e.button === 0) {
+                        e.stopPropagation();
+                        onBlockMouseDown(block.id);
+                    }
+                },
+                onMouseEnter: (e) => {
+                    onBlockMouseEnter(block.id);
+                },
+                onContextMenu: (e) => {
+                    e.preventDefault();
+                    onDelete(block.id);
+                }
+            },
+                // Chain start indicator (circle) - color matches connection
+                info.isStart && h('div', { 
+                    className: 'chain-indicator chain-start',
+                    style: { background: indicatorColor },
+                    title: 'Chain Start'
+                }),
+                // Chain end indicator (square) - only if not also the start
+                info.isEnd && !info.isStart && h('div', { 
+                    className: 'chain-indicator chain-end',
+                    style: { background: indicatorColor },
+                    title: 'Chain End'
+                })
+            );
+        }
+
+        function ArrayPanel({ block, rows, cols, onRowsChange, onColsChange, onApply, onCancel }) {
+            if (!block) return null;
+            
+            const product = PRODUCTS[block.type];
+            
+            return h('div', {
+                className: 'array-panel',
+                style: {
+                    left: (block.x - 220) + 'px', // Position to the left
+                    top: (block.y + BLOCK_HEIGHT + 20) + 'px' // Position below
+                }
+            },
+                h('div', { style: { color: '#f1f5f9', fontWeight: '700', marginBottom: '12px', fontSize: '14px' }}, 
+                    'Expand Array'
+                ),
+                h('div', { className: 'array-controls' },
+                    h('div', { className: 'array-input-group' },
+                        h('div', { className: 'array-label' }, 'Columns'),
+                        h('input', {
+                            type: 'number',
+                            min: 1,
+                            max: 20,
+                            value: cols,
+                            onChange: (e) => onColsChange(parseInt(e.target.value) || 1),
+                            className: 'array-input'
+                        })
+                    ),
+                    h('div', { className: 'array-input-group' },
+                        h('div', { className: 'array-label' }, 'Rows'),
+                        h('input', {
+                            type: 'number',
+                            min: 1,
+                            max: 20,
+                            value: rows,
+                            onChange: (e) => onRowsChange(parseInt(e.target.value) || 1),
+                            className: 'array-input'
+                        })
+                    )
+                ),
+                h('div', { style: { display: 'flex', gap: '8px', marginTop: '12px' }},
+                    h('button', {
+                        className: 'array-button',
+                        onClick: onApply
+                    }, 'Apply'),
+                    h('button', {
+                        className: 'array-button',
+                        style: { background: '#64748b' },
+                        onClick: onCancel
+                    }, 'Cancel')
+                )
+            );
+        }
+
+        function TipsBox() {
+            const tips = [
+                'Use the Paint tool to quickly color entire chains in one swoop!',
+                'The Array tool lets you expand a single block into a grid pattern.',
+                'Single-unit chains keep their color when isolated by the eraser.',
+                'Draw squiggly paths with the Pen tool - blocks connect in order!',
+                'Hold Space and drag to pan around your design.',
+                'Chain indicators (circle/square) match the signal color.',
+                'Right-click any block to quickly delete it.',
+                'Blocks automatically snap to the central cluster - no islands!',
+                'Use different signal colors to organize data paths visually.',
+                'The Eraser smartly creates single-unit chains from remainders.'
+            ];
+            
+            const [tipIndex, setTipIndex] = React.useState(0);
+            
+            React.useEffect(() => {
+                const interval = setInterval(() => {
+                    setTipIndex(prev => (prev + 1) % tips.length);
+                }, 8000);
+                return () => clearInterval(interval);
+            }, []);
+            
+            return h('div', { className: 'tips-box' },
+                h('div', { className: 'tips-label' }, '💡 Pro Tip'),
+                h('div', { className: 'tip-content' }, tips[tipIndex])
+            );
+        }
+
+        function SignalCounter({ blocks, connections, singleUnitChains, singleUnitColors, advancedMode, panelWidth, panelHeight }) {
+            // Count blocks per signal
+            const counts = { unassigned: 0 };
+            SIGNAL_COLORS.forEach(signal => {
+                counts[signal.id] = 0;
+            });
+            
+            // Count from connections
+            const processedBlocks = new Set();
+            connections.forEach(conn => {
+                if (conn.color) {
+                    if (!processedBlocks.has(conn.from)) {
+                        counts[conn.color]++;
+                        processedBlocks.add(conn.from);
+                    }
+                    if (!processedBlocks.has(conn.to)) {
+                        counts[conn.color]++;
+                        processedBlocks.add(conn.to);
+                    }
+                }
+            });
+            
+            // Count single units
+            singleUnitChains.forEach(blockId => {
+                if (!processedBlocks.has(blockId)) {
+                    const color = singleUnitColors[blockId];
+                    if (color) {
+                        counts[color]++;
+                    } else {
+                        counts.unassigned++;
+                    }
+                    processedBlocks.add(blockId);
+                }
+            });
+            
+            // Count unassigned blocks
+            blocks.forEach(block => {
+                if (!processedBlocks.has(block.id)) {
+                    counts.unassigned++;
+                }
+            });
+            
+            // Display counts
+            const items = [];
+            
+            // Calculate pixels per panel (ensure we have valid numbers)
+            const width = parseInt(panelWidth) || 480;
+            const height = parseInt(panelHeight) || 270;
+            const pixelsPerPanel = width * height;
+            
+            // Unassigned first
+            if (counts.unassigned > 0) {
+                const totalPixels = advancedMode ? counts.unassigned * pixelsPerPanel : null;
+                items.push(h('div', { key: 'unassigned', className: 'counter-item' },
+                    h('div', { className: 'counter-color' },
+                        h('div', { className: 'counter-dot', style: { background: '#94a3b8' }}),
+                        h('span', null, 'Unassigned')
+                    ),
+                    h('div', { style: { textAlign: 'right' }},
+                        h('span', { className: 'counter-value' }, counts.unassigned + ' units'),
+                        advancedMode && totalPixels && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`)
+                    )
+                ));
+            }
+            
+            // Then signals with counts > 0
+            SIGNAL_COLORS.forEach(signal => {
+                if (counts[signal.id] > 0) {
+                    const totalPixels = advancedMode ? counts[signal.id] * pixelsPerPanel : null;
+                    items.push(h('div', { key: signal.id, className: 'counter-item' },
+                        h('div', { className: 'counter-color' },
+                            h('div', { className: 'counter-dot', style: { background: signal.color }}),
+                            h('span', null, signal.name)
+                        ),
+                        h('div', { style: { textAlign: 'right' }},
+                            h('span', { className: 'counter-value' }, counts[signal.id] + ' units'),
+                            advancedMode && totalPixels && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`)
+                        )
+                    ));
+                }
+            });
+            
+            // Calculate totals
+            const totalPanels = blocks.length;
+            const totalPixels = advancedMode ? totalPanels * pixelsPerPanel : 0;
+            
+            return h(React.Fragment, null,
+                h('div', { className: 'counter-title' }, 'Signal Usage'),
+                items.length > 0 ? items : h('div', { style: { fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}, 'No blocks placed yet'),
+                
+                // Total panels (always show)
+                h('div', { style: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #334155' }},
+                    h('div', { className: 'counter-item' },
+                        h('div', { style: { fontWeight: '600', color: '#cbd5e1', fontSize: '11px' }}, 'Total Panels'),
+                        h('div', { style: { textAlign: 'right' }},
+                            h('span', { className: 'counter-value' }, totalPanels + ' units'),
+                            advancedMode && totalPixels > 0 && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`)
+                        )
+                    )
+                )
+            );
+        }
+
+        function Workspace({ blocks, connections, chainInfo, chainColors, singleUnitChains, singleUnitColors, onDrop, onBlockDragStart, onBlockDrag, onBlockDragEnd, onBlockDelete, zoom, pan, onWheel, onPanStart, onPanMove, onPanEnd, isPanning, draggedBlockId, selectedTool, selectedColor, drawPath, drawingPathLine, isPathFading, arrayPanelBlock, arrayRows, arrayCols, onArrayRowsChange, onArrayColsChange, onApplyArray, onCancelArray, instructionsHidden, setInstructionsHidden, advancedMode, setAdvancedMode, panelWidth, setPanelWidth, panelHeight, setPanelHeight, onUndo, onRedo, onClearCables, canUndo, canRedo }) {
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = 'copy';
+            };
+            
+            const workspaceClass = 'workspace' + 
+                (isPanning ? ' panning' : '') +
+                (selectedTool === 'pen' ? ' pen-tool' : '') +
+                (selectedTool === 'paint' ? ' pen-tool' : '') +
+                (selectedTool === 'eraser' ? ' eraser-tool' : '');
+            
+            return h('div', {
+                className: workspaceClass,
+                onDragOver: handleDragOver,
+                onDrop: onDrop,
+                onMouseDown: onPanStart,
+                onMouseMove: onPanMove,
+                onMouseUp: onPanEnd,
+                onMouseLeave: onPanEnd
+            },
+                h('div', {
+                    className: 'canvas-container',
+                    style: {
+                        transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`
+                    }
+                },
+                    h('div', { className: 'grid-background' }),
+                    ...ConnectionLines({ blocks, connections }),
+                    // Drawing path line (continuous line while drawing)
+                    drawingPathLine.length > 1 && h('svg', {
+                        style: {
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            pointerEvents: 'none',
+                            zIndex: 25
+                        }
+                    },
+                        h('path', {
+                            d: 'M ' + drawingPathLine.map(p => `${p.x},${p.y}`).join(' L '),
+                            className: 'drawing-path-line' + (isPathFading ? ' fading' : ''),
+                            style: {
+                                stroke: selectedTool === 'eraser' ? '#ef4444' : selectedTool === 'paint' ? (SIGNAL_COLORS.find(s => s.id === selectedColor)?.color || '#3b82f6') : '#3b82f6',
+                                strokeWidth: 3,
+                                fill: 'none',
+                                opacity: isPathFading ? 0 : 0.8
+                            }
+                        })
+                    ),
+                    blocks.map(block =>
+                        h(Block, {
+                            key: block.id,
+                            block: block,
+                            chainInfo: chainInfo,
+                            chainColor: chainColors[block.id],
+                            onDragStart: onBlockDragStart,
+                            onDrag: onBlockDrag,
+                            onDragEnd: onBlockDragEnd,
+                            onDelete: onBlockDelete,
+                            isDragging: draggedBlockId,
+                            selectedTool: selectedTool,
+                            onBlockMouseDown: (blockId) => blocks.find(b => b.id === block.id) && window.handleBlockMouseDown && window.handleBlockMouseDown(blockId),
+                            onBlockMouseEnter: (blockId) => blocks.find(b => b.id === block.id) && window.handleBlockMouseEnter && window.handleBlockMouseEnter(blockId),
+                            isInDrawPath: drawPath && drawPath.includes(block.id)
+                        })
+                    ),
+                    
+                    // Array preview blocks
+                    arrayPanelBlock && (() => {
+                        const previewBlocks = [];
+                        for (let row = 0; row < arrayRows; row++) {
+                            for (let col = 0; col < arrayCols; col++) {
+                                const previewX = arrayPanelBlock.x + (col * 80); // BLOCK_WIDTH = 80
+                                const previewY = arrayPanelBlock.y - (row * 45); // BLOCK_HEIGHT = 45
+                                const isOrigin = row === 0 && col === 0;
+                                
+                                previewBlocks.push(
+                                    h('div', {
+                                        key: `preview-${row}-${col}`,
+                                        className: 'array-preview-block' + (isOrigin ? ' origin' : ''),
+                                        style: {
+                                            left: previewX + 'px',
+                                            top: previewY + 'px',
+                                            width: '80px',
+                                            height: '45px'
+                                        }
+                                    })
+                                );
+                            }
+                        }
+                        return previewBlocks;
+                    })(),
+                    
+                    // Array panel
+                    arrayPanelBlock && h(ArrayPanel, {
+                        block: arrayPanelBlock,
+                        rows: arrayRows,
+                        cols: arrayCols,
+                        onRowsChange: onArrayRowsChange,
+                        onColsChange: onArrayColsChange,
+                        onApply: onApplyArray,
+                        onCancel: onCancelArray
+                    })
+                ),
+                h('div', { className: 'zoom-controls' },
+                    h('button', {
+                        className: 'zoom-btn',
+                        onClick: (e) => { e.stopPropagation(); zoom > 0.5 && onWheel({ deltaY: 100, preventDefault: () => {}, stopPropagation: () => {} }); },
+                        title: 'Zoom Out'
+                    }, '−'),
+                    h('div', { className: 'zoom-level' }, Math.round(zoom * 100) + '%'),
+                    h('button', {
+                        className: 'zoom-btn',
+                        onClick: (e) => { e.stopPropagation(); zoom < 2 && onWheel({ deltaY: -100, preventDefault: () => {}, stopPropagation: () => {} }); },
+                        title: 'Zoom In'
+                    }, '+'),
+                    h('button', {
+                        className: 'zoom-btn',
+                        onClick: (e) => { e.stopPropagation(); onWheel({ deltaY: 0, reset: true, preventDefault: () => {}, stopPropagation: () => {} }); },
+                        title: 'Reset View',
+                        style: { fontSize: '14px' }
+                    }, '⟲')
+                ),
+                
+                // History controls (undo/redo)
+                h('div', { className: 'history-controls' },
+                    h('button', {
+                        className: 'history-btn',
+                        onClick: (e) => { e.stopPropagation(); onUndo(); },
+                        disabled: !canUndo,
+                        title: 'Undo (Ctrl+Z)'
+                    }, '↶'),
+                    h('button', {
+                        className: 'history-btn',
+                        onClick: (e) => { e.stopPropagation(); onRedo(); },
+                        disabled: !canRedo,
+                        title: 'Redo (Ctrl+Y)'
+                    }, '↷')
+                ),
+                
+                // Clear All Cables banner (only show when Remove Cable tool is selected)
+                selectedTool === 'eraser' && h('div', {
+                    className: 'clear-cables-banner',
+                    onClick: (e) => { e.stopPropagation(); onClearCables(); },
+                    title: 'Remove all cables while keeping blocks in place'
+                }, '🗑️ Clear All Cables'),
+                
+                // Instructions toggle button (when hidden)
+                instructionsHidden && h('div', {
+                    className: 'instructions-toggle',
+                    onClick: () => setInstructionsHidden(false)
+                }, '📖 Show Instructions'),
+                
+                h('div', { className: 'instructions' + (instructionsHidden ? ' hidden' : '') },
+                    // Hide button
+                    h('button', {
+                        className: 'hide-button',
+                        onClick: () => setInstructionsHidden(true),
+                        title: 'Hide Instructions'
+                    }, '×'),
+                    
+                    h('h3', null, 'Instructions'),
+                    h('div', null, '• Drag product blocks into workspace'),
+                    h('div', null, '• Right-click blocks to delete'),
+                    h('div', null, '• Scroll wheel to zoom and pan'),
+                    h('div', null, '• Edit Array: Select a block to create rectangular grids. Each block maintains independent identity.'),
+                    h('div', null, '• Add Cable: Draw connections between blocks to create data chains.'),
+                    h('div', null, '• Signal Bucket & Remove Cable: Paint or erase signal assignments by drawing over chains.'),
+                    
+                    // Disclaimer
+                    h('div', { className: 'disclaimer' },
+                        'This tool is purely illustrative and conceptual. Nothing should be considered authoritative for construction purposes.'
+                    ),
+                    
+                    // Tips box with rotating tips
+                    h(TipsBox)
+                ),
+                
+                // Advanced Mode in separate window (between zoom and signal counter)
+                h('div', { className: 'advanced-mode-window' },
+                    // Advanced Mode Toggle
+                    h('div', {
+                        className: 'advanced-mode-toggle' + (advancedMode ? ' active' : ''),
+                        onClick: () => setAdvancedMode(!advancedMode)
+                    }, advancedMode ? '⚙️ Advanced Mode: ON' : '⚙️ Advanced Mode: OFF'),
+                    
+                    // Advanced Controls (only show when advanced mode is on)
+                    advancedMode && h('div', { className: 'advanced-controls' },
+                        h('div', { className: 'advanced-input-group' },
+                            h('label', { className: 'advanced-label' }, 'Panel Width (Pixels)'),
+                            h('input', {
+                                type: 'text',
+                                className: 'advanced-input',
+                                value: String(panelWidth || ''),
+                                onChange: (e) => {
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                        setPanelWidth('');
+                                    } else if (/^\d+$/.test(val)) {
+                                        setPanelWidth(parseInt(val));
+                                    }
+                                },
+                                onBlur: (e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || parseInt(val) < 1 || isNaN(parseInt(val))) {
+                                        setPanelWidth(480);
+                                    }
+                                },
+                                placeholder: '480'
+                            })
+                        ),
+                        h('div', { className: 'advanced-input-group' },
+                            h('label', { className: 'advanced-label' }, 'Panel Height (Pixels)'),
+                            h('input', {
+                                type: 'text',
+                                className: 'advanced-input',
+                                value: String(panelHeight || ''),
+                                onChange: (e) => {
+                                    const val = e.target.value;
+                                    if (val === '') {
+                                        setPanelHeight('');
+                                    } else if (/^\d+$/.test(val)) {
+                                        setPanelHeight(parseInt(val));
+                                    }
+                                },
+                                onBlur: (e) => {
+                                    const val = e.target.value;
+                                    if (val === '' || parseInt(val) < 1 || isNaN(parseInt(val))) {
+                                        setPanelHeight(270);
+                                    }
+                                },
+                                placeholder: '270'
+                            })
+                        ),
+                        
+                        // Total Resolution display
+                        h('div', { className: 'dimensions-display', style: { marginTop: '12px' } },
+                            h('div', { className: 'dimensions-label' }, 'Total Resolution'),
+                            h('div', { className: 'dimensions-value' }, 
+                                (() => {
+                                    // Calculate total resolution based on blocks and panel dimensions
+                                    if (blocks.length === 0) {
+                                        return '0 × 0';
+                                    }
+                                    
+                                    const width = parseInt(panelWidth) || 480;
+                                    const height = parseInt(panelHeight) || 270;
+                                    
+                                    // Find the grid dimensions (how many blocks wide and tall)
+                                    let minX = Infinity, maxX = -Infinity;
+                                    let minY = Infinity, maxY = -Infinity;
+                                    
+                                    blocks.forEach(block => {
+                                        if (block.x < minX) minX = block.x;
+                                        if (block.x > maxX) maxX = block.x;
+                                        if (block.y < minY) minY = block.y;
+                                        if (block.y > maxY) maxY = block.y;
+                                    });
+                                    
+                                    // Calculate number of blocks in each dimension
+                                    const blocksWide = Math.floor((maxX - minX) / 80) + 1;
+                                    const blocksTall = Math.floor((maxY - minY) / 45) + 1;
+                                    
+                                    // Total resolution = blocks × panel dimensions
+                                    const totalWidth = blocksWide * width;
+                                    const totalHeight = blocksTall * height;
+                                    
+                                    return `${totalWidth} × ${totalHeight}`;
+                                })()
+                            )
+                        )
+                    )
+                ),
+                
+                // Signal counter in separate window
+                h('div', { className: 'signal-counter-window' + (advancedMode ? ' expanded' : ' collapsed') },
+                    h(SignalCounter, {
+                        blocks: blocks,
+                        connections: connections,
+                        singleUnitChains: singleUnitChains,
+                        singleUnitColors: singleUnitColors,
+                        advancedMode: advancedMode,
+                        panelWidth: panelWidth,
+                        panelHeight: panelHeight
+                    })
+                )
+            );
+        }
+
+        function App() {
+            const [blocks, setBlocks] = useState([]);
+            const [nextId, setNextId] = useState(1);
+            const [draggedBlockId, setDraggedBlockId] = useState(null);
+            const [zoom, setZoom] = useState(1);
+            const [pan, setPan] = useState({ x: 0, y: 0 }); // Will be set on mount
+            const [isPanning, setIsPanning] = useState(false);
+            const [spacePressed, setSpacePressed] = useState(false);
+            const [instructionsHidden, setInstructionsHidden] = useState(false);
+            const [advancedMode, setAdvancedMode] = useState(false);
+            const [panelWidth, setPanelWidth] = useState(480);
+            const [panelHeight, setPanelHeight] = useState(270);
+            
+            // History for undo/redo
+            const [history, setHistory] = useState([]);
+            const [historyIndex, setHistoryIndex] = useState(-1);
+            
+            const dragOffset = useRef({ x: 0, y: 0 });
+            const panStart = useRef({ x: 0, y: 0 });
+            const workspaceRef = useRef(null);
+
+            // Center view on mount
+            React.useEffect(() => {
+                const workspace = document.querySelector('.workspace');
+                if (workspace) {
+                    const rect = workspace.getBoundingClientRect();
+                    // Center the 8000x6000 canvas in the viewport
+                    setPan({
+                        x: rect.width / 2 - 4000,
+                        y: rect.height / 2 - 3000
+                    });
+                }
+            }, []);
+
+            // Handle spacebar for panning and undo/redo shortcuts
+            React.useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.code === 'Space' && !spacePressed) {
+                        setSpacePressed(true);
+                    }
+                    // Undo: Ctrl+Z or Cmd+Z
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleUndo();
+                    }
+                    // Redo: Ctrl+Y or Cmd+Y or Ctrl+Shift+Z
+                    if (((e.ctrlKey || e.metaKey) && e.key === 'y') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
+                        e.preventDefault();
+                        handleRedo();
+                    }
+                };
+                const handleKeyUp = (e) => {
+                    if (e.code === 'Space') {
+                        setSpacePressed(false);
+                        setIsPanning(false);
+                    }
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                window.addEventListener('keyup', handleKeyUp);
+                return () => {
+                    window.removeEventListener('keydown', handleKeyDown);
+                    window.removeEventListener('keyup', handleKeyUp);
+                };
+            }, [spacePressed, historyIndex, history]);
+
+            const SNAP_DISTANCE = 60; // Distance to trigger magnetic snap (increased for stronger magnetism)
+            const BLOCK_WIDTH = 80;
+            const BLOCK_HEIGHT = 45;
+            const MAX_CHAIN_LENGTH = 5;
+
+            // Manual connections - array of {from: blockId, to: blockId, color?: signalId}
+            const [connections, setConnections] = useState([]);
+            const [singleUnitChains, setSingleUnitChains] = useState(new Set()); // Blocks marked as single-unit chains
+            const [singleUnitColors, setSingleUnitColors] = useState({}); // Map of blockId to color for single units
+            const [selectedTool, setSelectedTool] = useState('select'); // 'select', 'pen', 'paint', 'eraser', 'array'
+            const [selectedColor, setSelectedColor] = useState('signal1'); // Current paint color
+            const [isDrawing, setIsDrawing] = useState(false);
+            const [drawPath, setDrawPath] = useState([]); // Array of block IDs touched during draw
+            const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+            const [drawingPathLine, setDrawingPathLine] = useState([]); // Array of {x, y} points for visual line
+            const [isPathFading, setIsPathFading] = useState(false);
+            const [arrayPanelBlock, setArrayPanelBlock] = useState(null); // Block being arrayed
+            const [arrayRows, setArrayRows] = useState(1);
+            const [arrayCols, setArrayCols] = useState(1);
+
+            // Save state to history
+            const saveToHistory = () => {
+                const currentState = {
+                    blocks: JSON.parse(JSON.stringify(blocks)),
+                    connections: JSON.parse(JSON.stringify(connections)),
+                    singleUnitChains: new Set(singleUnitChains),
+                    singleUnitColors: JSON.parse(JSON.stringify(singleUnitColors)),
+                    nextId: nextId
+                };
+                
+                // Remove any future history if we're not at the end
+                const newHistory = history.slice(0, historyIndex + 1);
+                newHistory.push(currentState);
+                
+                // Limit history to last 50 states
+                if (newHistory.length > 50) {
+                    newHistory.shift();
+                } else {
+                    setHistoryIndex(historyIndex + 1);
+                }
+                
+                setHistory(newHistory);
+            };
+            
+            // Undo function
+            const handleUndo = () => {
+                if (historyIndex > 0) {
+                    const previousState = history[historyIndex - 1];
+                    setBlocks(JSON.parse(JSON.stringify(previousState.blocks)));
+                    setConnections(JSON.parse(JSON.stringify(previousState.connections)));
+                    setSingleUnitChains(new Set(previousState.singleUnitChains));
+                    setSingleUnitColors(JSON.parse(JSON.stringify(previousState.singleUnitColors)));
+                    setNextId(previousState.nextId);
+                    setHistoryIndex(historyIndex - 1);
+                }
+            };
+            
+            // Redo function
+            const handleRedo = () => {
+                if (historyIndex < history.length - 1) {
+                    const nextState = history[historyIndex + 1];
+                    setBlocks(JSON.parse(JSON.stringify(nextState.blocks)));
+                    setConnections(JSON.parse(JSON.stringify(nextState.connections)));
+                    setSingleUnitChains(new Set(nextState.singleUnitChains));
+                    setSingleUnitColors(JSON.parse(JSON.stringify(nextState.singleUnitColors)));
+                    setNextId(nextState.nextId);
+                    setHistoryIndex(historyIndex + 1);
+                }
+            };
+            
+            // Clear all cables function
+            const handleClearAllCables = () => {
+                saveToHistory();
+                setConnections([]);
+                setSingleUnitChains(new Set());
+                setSingleUnitColors({});
+            };
+
+            // Helper function to find all blocks connected in a chain
+            const findChainBlocks = (startBlockId) => {
+                const chainBlocks = new Set();
+                const queue = [startBlockId];
+                
+                while (queue.length > 0) {
+                    const currentId = queue.shift();
+                    if (chainBlocks.has(currentId)) continue;
+                    
+                    chainBlocks.add(currentId);
+                    
+                    // Find all connections involving this block
+                    connections.forEach(conn => {
+                        if (conn.from === currentId && !chainBlocks.has(conn.to)) {
+                            queue.push(conn.to);
+                        }
+                        if (conn.to === currentId && !chainBlocks.has(conn.from)) {
+                            queue.push(conn.from);
+                        }
+                    });
+                }
+                
+                return chainBlocks;
+            };
+
+            const analyzeManualChains = () => {
+                const chainInfo = {};
+                const chainColors = {}; // Map of blockId to signal color
+                
+                // First, mark single-unit chains with their colors
+                singleUnitChains.forEach(blockId => {
+                    if (blocks.find(b => b.id === blockId)) {
+                        chainInfo[blockId] = {
+                            isStart: true,
+                            isEnd: false,
+                            chainId: `single-${blockId}`,
+                            chainLength: 1
+                        };
+                        // Use stored color for single unit if available
+                        if (singleUnitColors[blockId]) {
+                            chainColors[blockId] = SIGNAL_COLORS.find(s => s.id === singleUnitColors[blockId])?.color || '#3b82f6';
+                        }
+                    }
+                });
+                
+                if (connections.length === 0) {
+                    return { chainInfo, chainColors };
+                }
+
+                // Build directed adjacency from connections (maintain order: from -> to)
+                const adjacency = {};
+                blocks.forEach(block => {
+                    adjacency[block.id] = { outgoing: [], incoming: [] };
+                });
+
+                connections.forEach(conn => {
+                    if (adjacency[conn.from]) {
+                        adjacency[conn.from].outgoing.push({ id: conn.to, color: conn.color });
+                    }
+                    if (adjacency[conn.to]) {
+                        adjacency[conn.to].incoming.push({ id: conn.from, color: conn.color });
+                    }
+                });
+
+                // Find chain starts (blocks with no incoming connections but have outgoing)
+                const visited = new Set();
+                const chains = [];
+
+                blocks.forEach(block => {
+                    if (visited.has(block.id)) return;
+                    
+                    const incoming = adjacency[block.id].incoming.length;
+                    const outgoing = adjacency[block.id].outgoing.length;
+                    
+                    // This is a start if it has outgoing but no incoming
+                    if (incoming === 0 && outgoing > 0) {
+                        // Trace the chain forward
+                        const chain = [];
+                        let current = block.id;
+                        let chainColor = null;
+                        
+                        while (current && !visited.has(current)) {
+                            visited.add(current);
+                            chain.push(current);
+                            
+                            // Get the color from the outgoing connection
+                            const nextBlocks = adjacency[current].outgoing;
+                            if (nextBlocks.length > 0) {
+                                if (!chainColor && nextBlocks[0].color) {
+                                    chainColor = nextBlocks[0].color;
+                                }
+                                current = nextBlocks[0].id;
+                            } else {
+                                current = null;
+                            }
+                        }
+                        
+                        if (chain.length > 0) {
+                            chains.push({ chain, color: chainColor });
+                        }
+                    }
+                });
+
+                // Mark chain positions and colors
+                chains.forEach(({ chain, color }, idx) => {
+                    chain.forEach((blockId, position) => {
+                        chainInfo[blockId] = {
+                            isStart: position === 0,
+                            isEnd: position === chain.length - 1,
+                            chainId: idx,
+                            chainLength: chain.length
+                        };
+                        if (color) {
+                            chainColors[blockId] = SIGNAL_COLORS.find(s => s.id === color)?.color || '#3b82f6';
+                        }
+                    });
+                });
+
+                return { chainInfo, chainColors };
+            };
+
+            const findSnapPosition = (x, y, blockId = null) => {
+                // If there are no other blocks, don't snap
+                const otherBlocks = blocks.filter(b => b.id !== blockId);
+                if (otherBlocks.length === 0) {
+                    return { x, y, snapped: false };
+                }
+
+                // Find the closest snap position to ANY existing block
+                let closestSnap = null;
+                let closestDistance = Infinity;
+
+                for (const block of otherBlocks) {
+                    const blockRight = block.x + BLOCK_WIDTH;
+                    const blockBottom = block.y + BLOCK_HEIGHT;
+                    const newRight = x + BLOCK_WIDTH;
+                    const newBottom = y + BLOCK_HEIGHT;
+                    
+                    // Possible snap positions: right, left, bottom, top
+                    const snapPositions = [
+                        // Snap to right edge
+                        { x: blockRight, y: block.y, distance: Math.sqrt(Math.pow(blockRight - x, 2) + Math.pow(block.y - y, 2)) },
+                        // Snap to left edge
+                        { x: block.x - BLOCK_WIDTH, y: block.y, distance: Math.sqrt(Math.pow(block.x - BLOCK_WIDTH - x, 2) + Math.pow(block.y - y, 2)) },
+                        // Snap to bottom edge
+                        { x: block.x, y: blockBottom, distance: Math.sqrt(Math.pow(block.x - x, 2) + Math.pow(blockBottom - y, 2)) },
+                        // Snap to top edge
+                        { x: block.x, y: block.y - BLOCK_HEIGHT, distance: Math.sqrt(Math.pow(block.x - x, 2) + Math.pow(block.y - BLOCK_HEIGHT - y, 2)) }
+                    ];
+
+                    snapPositions.forEach(pos => {
+                        if (pos.distance < closestDistance && pos.distance < SNAP_DISTANCE * 3) {
+                            closestDistance = pos.distance;
+                            closestSnap = { x: pos.x, y: pos.y };
+                        }
+                    });
+                }
+
+                // If we found a close enough snap position, use it
+                if (closestSnap && closestDistance < SNAP_DISTANCE * 3) {
+                    return { x: closestSnap.x, y: closestSnap.y, snapped: true };
+                }
+
+                // If no snap found, return closest position to nearest block (forced clustering)
+                if (otherBlocks.length > 0 && closestSnap) {
+                    return { x: closestSnap.x, y: closestSnap.y, snapped: true };
+                }
+                
+                return { x, y, snapped: false };
+            };
+
+            const snapToGrid = (value) => value; // Remove grid snapping
+
+            const handleToolboxDragStart = (e, productType) => {
+                console.log('Drag started from toolbox:', productType);
+                e.dataTransfer.setData('productType', productType);
+                e.dataTransfer.effectAllowed = 'copy';
+            };
+
+            const handleWorkspaceDrop = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const productType = e.dataTransfer.getData('productType');
+                console.log('Drop event triggered, productType:', productType);
+                
+                if (productType && PRODUCTS[productType]) {
+                    const workspace = e.currentTarget;
+                    const rect = workspace.getBoundingClientRect();
+                    
+                    // If no blocks exist, place near visible center
+                    if (blocks.length === 0) {
+                        const centerX = (rect.width / 2 - pan.x) / zoom - BLOCK_WIDTH / 2;
+                        const centerY = (rect.height / 2 - pan.y) / zoom - BLOCK_HEIGHT / 2;
+                        
+                        const newBlock = {
+                            id: nextId,
+                            type: productType,
+                            x: centerX,
+                            y: centerY
+                        };
+                        
+                        console.log('Creating first block at center:', newBlock);
+                        saveToHistory();
+                        setBlocks([newBlock]);
+                        setNextId(nextId + 1);
+                        return;
+                    }
+                    
+                    // Calculate position accounting for zoom and pan
+                    const rawX = (e.clientX - rect.left - pan.x) / zoom;
+                    const rawY = (e.clientY - rect.top - pan.y) / zoom;
+                    
+                    // Center the block on cursor
+                    const x = rawX - BLOCK_WIDTH / 2;
+                    const y = rawY - BLOCK_HEIGHT / 2;
+                    
+                    // Check for magnetic snap to other blocks
+                    const snapped = findSnapPosition(x, y);
+                    
+                    // Check if position is already occupied
+                    const isOccupied = blocks.some(block => 
+                        Math.abs(block.x - snapped.x) < 1 && Math.abs(block.y - snapped.y) < 1
+                    );
+                    
+                    if (isOccupied) {
+                        console.log('Position occupied, block not placed');
+                        return; // Don't place block if position is occupied
+                    }
+                    
+                    const newBlock = {
+                        id: nextId,
+                        type: productType,
+                        x: snapped.x,
+                        y: snapped.y
+                    };
+                    
+                    console.log('Creating new block:', newBlock, 'Snapped:', snapped.snapped);
+                    saveToHistory();
+                    setBlocks([...blocks, newBlock]);
+                    setNextId(nextId + 1);
+                } else {
+                    console.log('No valid productType found');
+                }
+            };
+
+            const handleBlockDragStart = (e, blockId) => {
+                if (isPanning || spacePressed) {
+                    e.preventDefault();
+                    return;
+                }
+                setDraggedBlockId(blockId);
+                const block = blocks.find(b => b.id === blockId);
+                const rect = e.currentTarget.getBoundingClientRect();
+                dragOffset.current = {
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                };
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('blockId', blockId.toString());
+            };
+
+            const handleBlockDrag = (e) => {
+                if (!draggedBlockId || e.clientX === 0 && e.clientY === 0) return;
+                
+                const workspace = document.querySelector('.workspace');
+                if (!workspace) return;
+                
+                const rect = workspace.getBoundingClientRect();
+                const x = (e.clientX - rect.left - pan.x) / zoom - dragOffset.current.x;
+                const y = (e.clientY - rect.top - pan.y) / zoom - dragOffset.current.y;
+                
+                // Check for magnetic snap
+                const snapped = findSnapPosition(x, y, draggedBlockId);
+                
+                // Check if the snapped position is occupied by another block
+                const isOccupied = blocks.some(block => 
+                    block.id !== draggedBlockId && 
+                    Math.abs(block.x - snapped.x) < 1 && 
+                    Math.abs(block.y - snapped.y) < 1
+                );
+                
+                // If occupied, don't move the block to that position
+                if (isOccupied) {
+                    return;
+                }
+                
+                setBlocks(blocks.map(block =>
+                    block.id === draggedBlockId
+                        ? { ...block, x: snapped.x, y: snapped.y }
+                        : block
+                ));
+            };
+
+            const handleBlockDragEnd = () => {
+                setDraggedBlockId(null);
+            };
+
+            const handleBlockDelete = (blockId) => {
+                saveToHistory();
+                
+                // Get the color of connections before deleting
+                const blockConnections = connections.filter(c => c.from === blockId || c.to === blockId);
+                const connectionColor = blockConnections.length > 0 ? blockConnections[0].color : null;
+                
+                // Find blocks that will become isolated
+                const affectedBlocks = new Set();
+                blockConnections.forEach(c => {
+                    affectedBlocks.add(c.from);
+                    affectedBlocks.add(c.to);
+                });
+                
+                // Remove the block
+                setBlocks(blocks.filter(b => b.id !== blockId));
+                
+                // Remove any connections involving this block
+                const remainingConnections = connections.filter(c => c.from !== blockId && c.to !== blockId);
+                setConnections(remainingConnections);
+                
+                // Check which blocks are now isolated and should become single-unit chains
+                const newSingleUnits = new Set(singleUnitChains);
+                const newSingleUnitColors = { ...singleUnitColors };
+                
+                affectedBlocks.forEach(bid => {
+                    if (bid !== blockId) {
+                        const stillConnected = remainingConnections.some(c => c.from === bid || c.to === bid);
+                        if (!stillConnected) {
+                            newSingleUnits.add(bid);
+                            if (connectionColor) {
+                                newSingleUnitColors[bid] = connectionColor;
+                            }
+                        }
+                    }
+                });
+                
+                // Remove the deleted block from single units
+                newSingleUnits.delete(blockId);
+                delete newSingleUnitColors[blockId];
+                
+                setSingleUnitChains(newSingleUnits);
+                setSingleUnitColors(newSingleUnitColors);
+            };
+
+            const handleBlockMouseDown = (blockId) => {
+                if (selectedTool === 'pen') {
+                    setIsDrawing(true);
+                    setDrawPath([blockId]);
+                    setIsPathFading(false);
+                    
+                    // Start the path line at this block's center
+                    const block = blocks.find(b => b.id === blockId);
+                    if (block) {
+                        setDrawingPathLine([{
+                            x: block.x + BLOCK_WIDTH / 2,
+                            y: block.y + BLOCK_HEIGHT / 2
+                        }]);
+                    }
+                } else if (selectedTool === 'paint') {
+                    saveToHistory();
+                    setIsDrawing(true);
+                    setDrawPath([blockId]);
+                    setIsPathFading(false);
+                    
+                    // Start the path line for painting
+                    const block = blocks.find(b => b.id === blockId);
+                    if (block) {
+                        setDrawingPathLine([{
+                            x: block.x + BLOCK_WIDTH / 2,
+                            y: block.y + BLOCK_HEIGHT / 2
+                        }]);
+                    }
+                    
+                    // Check if this is a single-unit chain
+                    if (singleUnitChains.has(blockId)) {
+                        // Paint single-unit chain
+                        setSingleUnitColors({
+                            ...singleUnitColors,
+                            [blockId]: selectedColor
+                        });
+                    } else {
+                        // Find all blocks in this chain and paint all their connections
+                        const chainBlocks = findChainBlocks(blockId);
+                        setConnections(connections.map(c => {
+                            if (chainBlocks.has(c.from) || chainBlocks.has(c.to)) {
+                                return { ...c, color: selectedColor };
+                            }
+                            return c;
+                        }));
+                    }
+                } else if (selectedTool === 'eraser') {
+                    saveToHistory();
+                    setIsDrawing(true);
+                    setIsPathFading(false);
+                    
+                    // Start the eraser path line
+                    const block = blocks.find(b => b.id === blockId);
+                    if (block) {
+                        setDrawingPathLine([{
+                            x: block.x + BLOCK_WIDTH / 2,
+                            y: block.y + BLOCK_HEIGHT / 2
+                        }]);
+                    }
+                    
+                    // Remove all connections involving this block
+                    setConnections(connections.filter(c => c.from !== blockId && c.to !== blockId));
+                    // Also remove from single-unit chains
+                    const newSingleUnits = new Set(singleUnitChains);
+                    newSingleUnits.delete(blockId);
+                    setSingleUnitChains(newSingleUnits);
+                } else if (selectedTool === 'array') {
+                    // Open array panel for this block
+                    const block = blocks.find(b => b.id === blockId);
+                    if (block) {
+                        setArrayPanelBlock(block);
+                        setArrayRows(1);
+                        setArrayCols(1);
+                    }
+                }
+            };
+
+            const handleBlockMouseEnter = (blockId) => {
+                if (isDrawing && selectedTool === 'pen') {
+                    // Add to draw path if not already there
+                    if (!drawPath.includes(blockId)) {
+                        setDrawPath([...drawPath, blockId]);
+                    }
+                } else if (isDrawing && selectedTool === 'paint') {
+                    // Add to draw path for visual feedback
+                    if (!drawPath.includes(blockId)) {
+                        setDrawPath([...drawPath, blockId]);
+                    }
+                    
+                    // Check if this is a single-unit chain
+                    if (singleUnitChains.has(blockId)) {
+                        // Paint single-unit chain
+                        setSingleUnitColors({
+                            ...singleUnitColors,
+                            [blockId]: selectedColor
+                        });
+                    } else {
+                        // Find all blocks in this chain and paint all their connections
+                        const chainBlocks = findChainBlocks(blockId);
+                        setConnections(connections.map(c => {
+                            if (chainBlocks.has(c.from) || chainBlocks.has(c.to)) {
+                                return { ...c, color: selectedColor };
+                            }
+                            return c;
+                        }));
+                    }
+                } else if (isDrawing && selectedTool === 'eraser') {
+                    // Get the color of connections before erasing
+                    const blockConnections = connections.filter(c => c.from === blockId || c.to === blockId);
+                    const connectionColor = blockConnections.length > 0 ? blockConnections[0].color : null;
+                    
+                    // Erase connections that specifically involve this block
+                    const connectionsToRemove = blockConnections;
+                    
+                    // Find blocks that will become isolated
+                    const affectedBlocks = new Set();
+                    connectionsToRemove.forEach(c => {
+                        affectedBlocks.add(c.from);
+                        affectedBlocks.add(c.to);
+                    });
+                    
+                    // Remove the connections
+                    const remainingConnections = connections.filter(c => c.from !== blockId && c.to !== blockId);
+                    setConnections(remainingConnections);
+                    
+                    // Check which blocks are now isolated and should become single-unit chains
+                    const newSingleUnits = new Set(singleUnitChains);
+                    const newSingleUnitColors = { ...singleUnitColors };
+                    
+                    affectedBlocks.forEach(bid => {
+                        const stillConnected = remainingConnections.some(c => c.from === bid || c.to === bid);
+                        if (!stillConnected && bid !== blockId) {
+                            // This block is now isolated, make it a single-unit chain with preserved color
+                            newSingleUnits.add(bid);
+                            if (connectionColor) {
+                                newSingleUnitColors[bid] = connectionColor;
+                            }
+                        }
+                    });
+                    
+                    // Remove the erased block from single units
+                    newSingleUnits.delete(blockId);
+                    delete newSingleUnitColors[blockId];
+                    
+                    setSingleUnitChains(newSingleUnits);
+                    setSingleUnitColors(newSingleUnitColors);
+                }
+            };
+
+            const handleDrawEnd = () => {
+                if (isDrawing && selectedTool === 'pen') {
+                    if (drawPath.length === 1) {
+                        saveToHistory();
+                        // Single unit chain - mark this block as a single-unit chain
+                        setSingleUnitChains(new Set([...singleUnitChains, drawPath[0]]));
+                    } else if (drawPath.length >= 2) {
+                        // Multi-unit chain - remove from single-unit chains if present
+                        const newSingleUnits = new Set(singleUnitChains);
+                        drawPath.forEach(id => newSingleUnits.delete(id));
+                        setSingleUnitChains(newSingleUnits);
+                        
+                        // Get color from FIRST block in the path (takes precedence)
+                        let inheritedColor = null;
+                        const firstBlockId = drawPath[0];
+                        
+                        // Check if first block has a single-unit color
+                        if (singleUnitColors[firstBlockId]) {
+                            inheritedColor = singleUnitColors[firstBlockId];
+                        } else {
+                            // Check if first block is part of a connection with a color
+                            const existingConnection = connections.find(c => 
+                                (c.from === firstBlockId || c.to === firstBlockId) && c.color
+                            );
+                            if (existingConnection) {
+                                inheritedColor = existingConnection.color;
+                            }
+                        }
+                        
+                        // Create connections between consecutive blocks in the path
+                        const newConnections = [];
+                        for (let i = 0; i < drawPath.length - 1; i++) {
+                            const from = drawPath[i];
+                            const to = drawPath[i + 1];
+                            
+                            // Check if this connection already exists
+                            const exists = connections.some(c => 
+                                (c.from === from && c.to === to) ||
+                                (c.from === to && c.to === from)
+                            );
+                            
+                            if (!exists) {
+                                const newConnection = { from, to };
+                                // Inherit color if one was found
+                                if (inheritedColor) {
+                                    newConnection.color = inheritedColor;
+                                }
+                                newConnections.push(newConnection);
+                            }
+                        }
+                        
+                        if (newConnections.length > 0) {
+                            saveToHistory();
+                            
+                            // If we're inheriting a color, also update all blocks in the second chain
+                            if (inheritedColor) {
+                                const allBlocksInPath = new Set(drawPath);
+                                const blocksToRecolor = new Set();
+                                
+                                // Find all blocks connected to the path
+                                const findConnectedBlocks = (blockId) => {
+                                    if (blocksToRecolor.has(blockId)) return;
+                                    blocksToRecolor.add(blockId);
+                                    
+                                    connections.forEach(c => {
+                                        if (c.from === blockId && !blocksToRecolor.has(c.to)) {
+                                            findConnectedBlocks(c.to);
+                                        }
+                                        if (c.to === blockId && !blocksToRecolor.has(c.from)) {
+                                            findConnectedBlocks(c.from);
+                                        }
+                                    });
+                                };
+                                
+                                // Start from all blocks in the draw path
+                                drawPath.forEach(blockId => findConnectedBlocks(blockId));
+                                
+                                // Update all existing connections involving these blocks to use the inherited color
+                                setConnections([...connections.map(c => {
+                                    if (blocksToRecolor.has(c.from) || blocksToRecolor.has(c.to)) {
+                                        return { ...c, color: inheritedColor };
+                                    }
+                                    return c;
+                                }), ...newConnections]);
+                                
+                                // Remove single-unit colors for blocks now in the merged chain
+                                const newSingleUnitColors = { ...singleUnitColors };
+                                blocksToRecolor.forEach(id => delete newSingleUnitColors[id]);
+                                setSingleUnitColors(newSingleUnitColors);
+                            } else {
+                                setConnections([...connections, ...newConnections]);
+                            }
+                        }
+
+                    }
+                }
+
+                // Fade out the drawing path line
+                if (drawingPathLine.length > 0) {
+                    setIsPathFading(true);
+                    setTimeout(() => {
+                        setDrawingPathLine([]);
+                        setIsPathFading(false);
+                    }, 500);
+                }
+
+                // Reset drawing state
+                setIsDrawing(false);
+                setDrawPath([]);
+            };
+
+            const handleApplyArray = () => {
+                if (!arrayPanelBlock) return;
+
+                saveToHistory();
+                
+                const originBlock = arrayPanelBlock;
+                const newBlocks = [];
+                const blocksToRemove = new Set([originBlock.id]); // Start with origin
+
+                // Generate array positions (origin is bottom-left, so build up and right)
+                for (let row = 0; row < arrayRows; row++) {
+                    for (let col = 0; col < arrayCols; col++) {
+                        const newX = originBlock.x + (col * BLOCK_WIDTH);
+                        const newY = originBlock.y - (row * BLOCK_HEIGHT); // Negative because up
+                        
+                        // Check if this position overlaps with existing blocks
+                        const overlappingBlock = blocks.find(b => 
+                            b.id !== originBlock.id &&
+                            Math.abs(b.x - newX) < 5 &&
+                            Math.abs(b.y - newY) < 5
+                        );
+                        
+                        if (overlappingBlock) {
+                            // "Consume" the overlapping block
+                            blocksToRemove.add(overlappingBlock.id);
+                        }
+                        
+                        // Create new block at this position
+                        newBlocks.push({
+                            id: nextId + row * arrayCols + col,
+                            type: originBlock.type,
+                            x: newX,
+                            y: newY
+                        });
+                    }
+                }
+
+                // Remove consumed blocks and add new array
+                setBlocks(blocks.filter(b => !blocksToRemove.has(b.id)).concat(newBlocks));
+                
+                // Remove connections involving consumed blocks
+                setConnections(connections.filter(c => 
+                    !blocksToRemove.has(c.from) && !blocksToRemove.has(c.to)
+                ));
+                
+                setNextId(nextId + arrayRows * arrayCols);
+                setArrayPanelBlock(null);
+            };
+
+            const handleMouseMove = (e) => {
+                const workspace = document.querySelector('.workspace');
+                if (workspace) {
+                    const rect = workspace.getBoundingClientRect();
+                    const newPos = {
+                        x: (e.clientX - rect.left - pan.x) / zoom,
+                        y: (e.clientY - rect.top - pan.y) / zoom
+                    };
+                    setMousePos(newPos);
+                    
+                    // Add point to drawing path line for pen, paint, and eraser
+                    if (isDrawing && (selectedTool === 'pen' || selectedTool === 'paint' || selectedTool === 'eraser')) {
+                        setDrawingPathLine(path => [...path, newPos]);
+                    }
+                }
+            };
+
+            const handleSelectTool = (tool) => {
+                setSelectedTool(tool);
+                setIsDrawing(false);
+                setDrawPath([]);
+            };
+
+            // Analyze chains whenever blocks, connections, single units, or their colors change
+            const { chainInfo, chainColors } = React.useMemo(() => {
+                return analyzeManualChains();
+            }, [blocks, connections, singleUnitChains, singleUnitColors]);
+
+            const handleWheel = (e) => {
+                if (e.reset) {
+                    // Reset view to center
+                    const workspace = document.querySelector('.workspace');
+                    if (workspace) {
+                        const rect = workspace.getBoundingClientRect();
+                        setZoom(1);
+                        setPan({
+                            x: rect.width / 2 - 4000,
+                            y: rect.height / 2 - 3000
+                        });
+                    }
+                    return;
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const delta = e.deltaY;
+                const zoomFactor = delta > 0 ? 0.9 : 1.1;
+                const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.25), 3);
+                
+                // Zoom towards mouse cursor
+                const workspace = document.querySelector('.workspace');
+                if (workspace) {
+                    const rect = workspace.getBoundingClientRect();
+                    const mouseX = e.clientX - rect.left;
+                    const mouseY = e.clientY - rect.top;
+                    
+                    const worldX = (mouseX - pan.x) / zoom;
+                    const worldY = (mouseY - pan.y) / zoom;
+                    
+                    const newPanX = mouseX - worldX * newZoom;
+                    const newPanY = mouseY - worldY * newZoom;
+                    
+                    setPan({ x: newPanX, y: newPanY });
+                }
+                
+                setZoom(newZoom);
+            };
+
+            const handlePanStart = (e) => {
+                // Don't pan if clicking on input, button, or other interactive elements
+                const target = e.target;
+                if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+                    return;
+                }
+                
+                // Only allow panning with select tool, or with middle mouse/space
+                if (selectedTool !== 'select' && selectedTool !== 'paint' && e.button !== 1 && !(e.button === 0 && spacePressed)) {
+                    return;
+                }
+                
+                // Paint tool shouldn't pan with regular clicks
+                if (selectedTool === 'paint' && e.button === 0 && !spacePressed) {
+                    return;
+                }
+                
+                // Middle mouse button or space + left click or select tool
+                if (e.button === 1 || (e.button === 0 && spacePressed) || selectedTool === 'select') {
+                    e.preventDefault();
+                    setIsPanning(true);
+                    panStart.current = {
+                        x: e.clientX - pan.x,
+                        y: e.clientY - pan.y
+                    };
+                }
+            };
+
+            const handlePanMove = (e) => {
+                if (isPanning) {
+                    e.preventDefault();
+                    setPan({
+                        x: e.clientX - panStart.current.x,
+                        y: e.clientY - panStart.current.y
+                    });
+                } else {
+                    // Track mouse for drawing preview
+                    handleMouseMove(e);
+                }
+            };
+
+            const handlePanEnd = () => {
+                setIsPanning(false);
+                handleDrawEnd();
+            };
+
+            // Expose handlers globally for blocks to access
+            React.useEffect(() => {
+                window.handleBlockMouseDown = handleBlockMouseDown;
+                window.handleBlockMouseEnter = handleBlockMouseEnter;
+                return () => {
+                    delete window.handleBlockMouseDown;
+                    delete window.handleBlockMouseEnter;
+                };
+            }, [handleBlockMouseDown, handleBlockMouseEnter]);
+
+            // Add wheel event listener with passive: false to allow preventDefault
+            React.useEffect(() => {
+                const workspace = document.querySelector('.workspace');
+                if (workspace) {
+                    workspace.addEventListener('wheel', handleWheel, { passive: false });
+                    return () => {
+                        workspace.removeEventListener('wheel', handleWheel);
+                    };
+                }
+            }, [handleWheel, zoom, pan]);
+
+            return h('div', { className: 'app-container' },
+                h(Toolbox, { 
+                    onDragStart: handleToolboxDragStart,
+                    selectedTool: selectedTool,
+                    onSelectTool: handleSelectTool,
+                    selectedColor: selectedColor,
+                    onSelectColor: setSelectedColor
+                }),
+                h(Workspace, {
+                    blocks: blocks,
+                    connections: connections,
+                    chainInfo: chainInfo,
+                    chainColors: chainColors,
+                    singleUnitChains: singleUnitChains,
+                    singleUnitColors: singleUnitColors,
+                    onDrop: handleWorkspaceDrop,
+                    onBlockDragStart: handleBlockDragStart,
+                    onBlockDrag: handleBlockDrag,
+                    onBlockDragEnd: handleBlockDragEnd,
+                    onBlockDelete: handleBlockDelete,
+                    zoom: zoom,
+                    pan: pan,
+                    onWheel: handleWheel,
+                    onPanStart: handlePanStart,
+                    onPanMove: handlePanMove,
+                    onPanEnd: handlePanEnd,
+                    isPanning: isPanning,
+                    draggedBlockId: draggedBlockId,
+                    selectedTool: selectedTool,
+                    selectedColor: selectedColor,
+                    drawPath: drawPath,
+                    drawingPathLine: drawingPathLine,
+                    isPathFading: isPathFading,
+                    arrayPanelBlock: arrayPanelBlock,
+                    arrayRows: arrayRows,
+                    arrayCols: arrayCols,
+                    onArrayRowsChange: setArrayRows,
+                    onArrayColsChange: setArrayCols,
+                    onApplyArray: handleApplyArray,
+                    onCancelArray: () => setArrayPanelBlock(null),
+                    instructionsHidden: instructionsHidden,
+                    setInstructionsHidden: setInstructionsHidden,
+                    advancedMode: advancedMode,
+                    setAdvancedMode: setAdvancedMode,
+                    panelWidth: panelWidth,
+                    setPanelWidth: setPanelWidth,
+                    panelHeight: panelHeight,
+                    setPanelHeight: setPanelHeight,
+                    onUndo: handleUndo,
+                    onRedo: handleRedo,
+                    onClearCables: handleClearAllCables,
+                    canUndo: historyIndex > 0,
+                    canRedo: historyIndex < history.length - 1
+                })
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(h(App));
+    </script>
+</body>
+</html>
