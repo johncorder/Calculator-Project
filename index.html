@@ -2601,13 +2601,12 @@
                         },
                         title: 'Close ad'
                     }, '×'),
-                    h('div', { 
-                        id: 'ad-content',
-                        style: { textAlign: 'center', color: '#64748b', fontSize: '12px', padding: '20px' }
-                    }, 
-                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1454345983529574"
-                        crossorigin="anonymous"></script>
-                    )
+                    h('script', {
+                        async: true,
+                        src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1454345983529574",
+                        crossorigin: "anonymous"
+                    })
+
                 )
             );
         }
