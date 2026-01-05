@@ -1,0 +1,4 @@
+User-agent: johncorder
+Allow: /
+
+Sitemap: https://doodleled.com/sitemap.xml

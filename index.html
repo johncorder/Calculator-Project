@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Designer - Basic</title>
+    <title>Doodle LED - Professional LED Video Wall Designer Tool</title>
+    <meta name="description" content="Free online LED video wall designer by Doodle LED. Create professional display configurations with 16:9 and 1:1 panels, manage signal routing, and export layouts.">
+    
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1454345983529574"
+         crossorigin="anonymous"></script>
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1454345983529574"
-     crossorigin="anonymous"></script>
-
     <style>
         * {
             margin: 0;
@@ -909,7 +911,7 @@
 
         function Toolbox({ onDragStart, selectedTool, onSelectTool, selectedColor, onSelectColor, blocks, activeProductType }) {
             return h('div', { className: 'toolbox' },
-                h('h2', null, 'DoodleLED'),
+                h('h2', null, 'Doodle LED'),
                 
                 // Tools Section
                 h('div', { className: 'toolbox-section' },
@@ -2591,26 +2593,6 @@
                     canRedo: historyIndex < history.length - 1
                 }),
                 
-                // Ad Banner
-                h('div', { 
-                    id: 'ad-banner',
-                    className: 'ad-banner'
-                },
-                    h('button', {
-                        className: 'ad-close',
-                        onClick: (e) => {
-                            e.stopPropagation();
-                            document.getElementById('ad-banner').style.display = 'none';
-                        },
-                        title: 'Close ad'
-                    }, '×'),
-                    h('script', {
-                        async: true,
-                        src: "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1454345983529574",
-                        crossorigin: "anonymous"
-                    })
-
-                )
             );
         }
 
