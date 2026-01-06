@@ -503,7 +503,7 @@
             color: #f1f5f9;
         }
         
-        .zoom-controls {
+        .history-controls {
             position: absolute;
             top: 20px;
             left: 20px;
@@ -513,48 +513,39 @@
             padding: 8px;
             display: flex;
             gap: 8px;
+            align-items: center;
             z-index: 100;
-            width: 210px;
         }
         
-        .zoom-btn {
-            width: 36px;
+        .controls-divider {
+            width: 2px;
             height: 36px;
             background: #334155;
-            border: none;
-            border-radius: 4px;
-            color: #f1f5f9;
-            font-size: 18px;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex-shrink: 0;
+            margin: 0 4px;
         }
         
-        .zoom-btn:hover {
-            background: #475569;
+        .zoom-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 0 8px;
+        }
+        
+        .zoom-label {
+            color: #64748b;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
         }
         
         .zoom-level {
             color: #cbd5e1;
             font-size: 14px;
-            display: flex;
-            align-items: center;
-            padding: 0 8px;
-            flex: 1;
-            justify-content: center;
-        }
-        
-        .history-controls {
-            position: absolute;
-            top: 20px;
-            left: 250px;
-            background: #1e293b;
-            border: 2px solid #334155;
-            border-radius: 8px;
-            padding: 8px;
-            display: flex;
-            gap: 8px;
-            z-index: 100;
+            text-align: center;
+            font-weight: 600;
+            line-height: 1;
         }
         
         .history-btn {
@@ -960,7 +951,6 @@
 
         function Toolbox({ onDragStart, selectedTool, onSelectTool, selectedColor, onSelectColor, blocks, activeProductType }) {
             return h('div', { className: 'toolbox' },
-                
                 // Tools Section
                 h('div', { className: 'toolbox-section' },
                     h('div', { className: 'section-title' }, 'Tools'),
@@ -1432,27 +1422,7 @@
                         onCancel: onCancelArray
                     })
                 ),
-                h('div', { className: 'zoom-controls' },
-                    h('button', {
-                        className: 'zoom-btn',
-                        onClick: (e) => { e.stopPropagation(); zoom > 0.5 && onWheel({ deltaY: 100, preventDefault: () => {}, stopPropagation: () => {} }); },
-                        title: 'Zoom Out'
-                    }, '−'),
-                    h('div', { className: 'zoom-level' }, Math.round(zoom * 100) + '%'),
-                    h('button', {
-                        className: 'zoom-btn',
-                        onClick: (e) => { e.stopPropagation(); zoom < 2 && onWheel({ deltaY: -100, preventDefault: () => {}, stopPropagation: () => {} }); },
-                        title: 'Zoom In'
-                    }, '+'),
-                    h('button', {
-                        className: 'zoom-btn',
-                        onClick: (e) => { e.stopPropagation(); onWheel({ deltaY: 0, reset: true, preventDefault: () => {}, stopPropagation: () => {} }); },
-                        title: 'Reset View',
-                        style: { fontSize: '14px' }
-                    }, '⟲')
-                ),
-                
-                // History controls (undo/redo)
+                // History controls with zoom level (undo/redo/zoom)
                 h('div', { className: 'history-controls' },
                     h('button', {
                         className: 'history-btn',
@@ -1465,7 +1435,12 @@
                         onClick: (e) => { e.stopPropagation(); onRedo(); },
                         disabled: !canRedo,
                         title: 'Redo (Ctrl+Y)'
-                    }, '↷')
+                    }, '↷'),
+                    h('div', { className: 'controls-divider' }),
+                    h('div', { className: 'zoom-section', title: 'Zoom Level (Ctrl+R to reset)' },
+                        h('div', { className: 'zoom-label' }, 'ZOOM'),
+                        h('div', { className: 'zoom-level' }, Math.round(zoom * 100) + '%')
+                    )
                 ),
                 
                 // Clear All Cables banner (only show when Remove Cable tool is selected)
@@ -1492,7 +1467,8 @@
                     h('h3', null, 'Instructions'),
                     h('div', null, '• Drag product blocks into workspace'),
                     h('div', null, '• Right-click blocks to delete'),
-                    h('div', null, '• Scroll wheel to zoom and pan'),
+                    h('div', null, '• Scroll wheel to zoom, middle-click to pan'),
+                    h('div', null, '• Ctrl+R to reset zoom and center view'),
                     h('div', null, '• Edit Array: Select a block to create rectangular grids. Each block maintains independent identity.'),
                     h('div', null, '• Add Cable: Draw connections between blocks to create data chains.'),
                     h('div', null, '• Signal Bucket & Remove Cable: Paint or erase signal assignments by drawing over chains.'),
@@ -1621,7 +1597,7 @@
             const [blocks, setBlocks] = useState([]);
             const [nextId, setNextId] = useState(1);
             const [draggedBlockId, setDraggedBlockId] = useState(null);
-            const [zoom, setZoom] = useState(1);
+            const [zoom, setZoom] = useState(1.5);
             const [pan, setPan] = useState({ x: 0, y: 0 }); // Will be set on mount
             const [isPanning, setIsPanning] = useState(false);
             const [spacePressed, setSpacePressed] = useState(false);
@@ -1637,6 +1613,8 @@
             const dragOffset = useRef({ x: 0, y: 0 });
             const panStart = useRef({ x: 0, y: 0 });
             const workspaceRef = useRef(null);
+            const wheelThrottle = useRef(null);
+            const lastWheelTime = useRef(0);
 
             // Center view on mount
             React.useEffect(() => {
@@ -1666,6 +1644,19 @@
                     if (((e.ctrlKey || e.metaKey) && e.key === 'y') || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z')) {
                         e.preventDefault();
                         handleRedo();
+                    }
+                    // Reset Zoom: Ctrl+R or Cmd+R
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                        e.preventDefault();
+                        const workspace = document.querySelector('.workspace');
+                        if (workspace) {
+                            const rect = workspace.getBoundingClientRect();
+                            setZoom(1);
+                            setPan({
+                                x: rect.width / 2 - 4000,
+                                y: rect.height / 2 - 3000
+                            });
+                        }
                     }
                 };
                 const handleKeyUp = (e) => {
@@ -2491,30 +2482,40 @@
                     return;
                 }
                 
+                // Block zoom when middle mouse button is held (panning)
+                if (isPanning) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                
                 e.preventDefault();
                 e.stopPropagation();
                 
+                // Calculate new zoom
                 const delta = e.deltaY;
                 const zoomFactor = delta > 0 ? 0.9 : 1.1;
                 const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.25), 3);
                 
-                // Zoom towards mouse cursor
+                // Get workspace and mouse position
                 const workspace = document.querySelector('.workspace');
-                if (workspace) {
-                    const rect = workspace.getBoundingClientRect();
-                    const mouseX = e.clientX - rect.left;
-                    const mouseY = e.clientY - rect.top;
-                    
-                    const worldX = (mouseX - pan.x) / zoom;
-                    const worldY = (mouseY - pan.y) / zoom;
-                    
-                    const newPanX = mouseX - worldX * newZoom;
-                    const newPanY = mouseY - worldY * newZoom;
-                    
-                    setPan({ x: newPanX, y: newPanY });
-                }
+                if (!workspace) return;
                 
+                const rect = workspace.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                // Calculate world coordinates at mouse position (before zoom)
+                const worldX = (mouseX - pan.x) / zoom;
+                const worldY = (mouseY - pan.y) / zoom;
+                
+                // Calculate new pan to keep same world point under mouse (after zoom)
+                const newPanX = mouseX - worldX * newZoom;
+                const newPanY = mouseY - worldY * newZoom;
+                
+                // Update zoom and pan together
                 setZoom(newZoom);
+                setPan({ x: newPanX, y: newPanY });
             };
 
             const handlePanStart = (e) => {
