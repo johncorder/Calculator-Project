@@ -1651,11 +1651,41 @@
                         const workspace = document.querySelector('.workspace');
                         if (workspace) {
                             const rect = workspace.getBoundingClientRect();
-                            setZoom(1);
-                            setPan({
-                                x: rect.width / 2 - 4000,
-                                y: rect.height / 2 - 3000
-                            });
+                            
+                            if (blocks.length > 0) {
+                                // Calculate bounding box of all blocks
+                                let minX = Infinity, minY = Infinity;
+                                let maxX = -Infinity, maxY = -Infinity;
+                                
+                                blocks.forEach(block => {
+                                    const product = PRODUCTS[block.type];
+                                    const blockWidth = product.aspectRatio === '1:1' ? 45 : 80;
+                                    const blockHeight = 45;
+                                    
+                                    minX = Math.min(minX, block.x);
+                                    minY = Math.min(minY, block.y);
+                                    maxX = Math.max(maxX, block.x + blockWidth);
+                                    maxY = Math.max(maxY, block.y + blockHeight);
+                                });
+                                
+                                // Calculate center of all blocks
+                                const centerX = (minX + maxX) / 2;
+                                const centerY = (minY + maxY) / 2;
+                                
+                                // Center viewport on blocks center at 150% zoom
+                                setZoom(1.5);
+                                setPan({
+                                    x: rect.width / 2 - centerX * 1.5,
+                                    y: rect.height / 2 - centerY * 1.5
+                                });
+                            } else {
+                                // No blocks - center on workspace
+                                setZoom(1.5);
+                                setPan({
+                                    x: rect.width / 2 - 4000 * 1.5,
+                                    y: rect.height / 2 - 3000 * 1.5
+                                });
+                            }
                         }
                     }
                 };
@@ -2469,15 +2499,45 @@
 
             const handleWheel = (e) => {
                 if (e.reset) {
-                    // Reset view to center
+                    // Reset view to center on products at 150% zoom
                     const workspace = document.querySelector('.workspace');
                     if (workspace) {
                         const rect = workspace.getBoundingClientRect();
-                        setZoom(1);
-                        setPan({
-                            x: rect.width / 2 - 4000,
-                            y: rect.height / 2 - 3000
-                        });
+                        
+                        if (blocks.length > 0) {
+                            // Calculate bounding box of all blocks
+                            let minX = Infinity, minY = Infinity;
+                            let maxX = -Infinity, maxY = -Infinity;
+                            
+                            blocks.forEach(block => {
+                                const product = PRODUCTS[block.type];
+                                const blockWidth = product.aspectRatio === '1:1' ? 45 : 80;
+                                const blockHeight = 45;
+                                
+                                minX = Math.min(minX, block.x);
+                                minY = Math.min(minY, block.y);
+                                maxX = Math.max(maxX, block.x + blockWidth);
+                                maxY = Math.max(maxY, block.y + blockHeight);
+                            });
+                            
+                            // Calculate center of all blocks
+                            const centerX = (minX + maxX) / 2;
+                            const centerY = (minY + maxY) / 2;
+                            
+                            // Center viewport on blocks center at 150% zoom
+                            setZoom(1.5);
+                            setPan({
+                                x: rect.width / 2 - centerX * 1.5,
+                                y: rect.height / 2 - centerY * 1.5
+                            });
+                        } else {
+                            // No blocks - center on workspace
+                            setZoom(1.5);
+                            setPan({
+                                x: rect.width / 2 - 4000 * 1.5,
+                                y: rect.height / 2 - 3000 * 1.5
+                            });
+                        }
                     }
                     return;
                 }
