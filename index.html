@@ -1362,19 +1362,13 @@
             
             // Unassigned first
             if (counts.unassigned > 0) {
-                const totalPixels = advancedMode ? counts.unassigned * pixelsPerPanel : null;
-                const resolution = advancedMode ? calculateResolution(blocksBySignal.unassigned) : null;
-                
                 items.push(h('div', { key: 'unassigned', className: 'counter-item' },
                     h('div', { className: 'counter-color' },
                         h('div', { className: 'counter-dot', style: { background: '#94a3b8' }}),
                         h('span', null, 'Unassigned')
                     ),
                     h('div', { style: { textAlign: 'right' }},
-                        h('span', { className: 'counter-value' }, counts.unassigned + ' units'),
-                        advancedMode && h('div', { className: 'pixel-count' }, `${portCounts.unassigned} ports`),
-                        advancedMode && totalPixels && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`),
-                        advancedMode && resolution && h('div', { className: 'pixel-count' }, resolution)
+                        h('span', { className: 'counter-value' }, counts.unassigned + ' units')
                     )
                 ));
             }
@@ -1404,8 +1398,8 @@
             const totalPanels = blocks.length;
             const totalPixels = advancedMode ? totalPanels * pixelsPerPanel : 0;
             
-            // Calculate total ports
-            let totalPorts = portCounts.unassigned || 0;
+            // Calculate total ports (excluding unassigned)
+            let totalPorts = 0;
             SIGNAL_COLORS.forEach(signal => {
                 totalPorts += portCounts[signal.id] || 0;
             });
