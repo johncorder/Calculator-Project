@@ -714,7 +714,7 @@
         }
         
         .signal-counter-window.expanded {
-            top: 362px;
+            top: 307px;
         }
         
         .advanced-input-group {
@@ -1208,14 +1208,19 @@
         }
 
         function SignalCounter({ blocks, connections, singleUnitChains, singleUnitColors, advancedMode, panelWidth, panelHeight }) {
-            // Count blocks per signal
+            // Count blocks per signal AND count chains (ports) per signal
             const counts = { unassigned: 0 };
+            const portCounts = { unassigned: 0 };
+            
             SIGNAL_COLORS.forEach(signal => {
                 counts[signal.id] = 0;
+                portCounts[signal.id] = 0;
             });
             
-            // Count from connections
+            // Count from connections and calculate chains
             const processedBlocks = new Set();
+            const chainsBySignal = {}; // Track unique chains per signal
+            
             connections.forEach(conn => {
                 if (conn.color) {
                     if (!processedBlocks.has(conn.from)) {
@@ -1229,37 +1234,137 @@
                 }
             });
             
+            // Count chains (ports) - need to find connected components per signal
+            const findChainForBlock = (blockId, visitedInChain, signalColor) => {
+                if (visitedInChain.has(blockId)) return;
+                visitedInChain.add(blockId);
+                
+                connections.forEach(conn => {
+                    if (conn.color === signalColor) {
+                        if (conn.from === blockId) {
+                            findChainForBlock(conn.to, visitedInChain, signalColor);
+                        }
+                        if (conn.to === blockId) {
+                            findChainForBlock(conn.from, visitedInChain, signalColor);
+                        }
+                    }
+                });
+            };
+            
+            // Count chains for each signal
+            const processedForChains = new Set();
+            connections.forEach(conn => {
+                if (conn.color && !processedForChains.has(conn.from)) {
+                    const chainBlocks = new Set();
+                    findChainForBlock(conn.from, chainBlocks, conn.color);
+                    chainBlocks.forEach(bid => processedForChains.add(bid));
+                    portCounts[conn.color]++;
+                }
+            });
+            
             // Count single units
             singleUnitChains.forEach(blockId => {
                 if (!processedBlocks.has(blockId)) {
                     const color = singleUnitColors[blockId];
                     if (color) {
                         counts[color]++;
+                        portCounts[color]++; // Single units are their own chain/port
                     } else {
                         counts.unassigned++;
+                        portCounts.unassigned++;
                     }
                     processedBlocks.add(blockId);
                 }
             });
             
-            // Count unassigned blocks
+            // Count unassigned blocks (each is its own "port" conceptually)
             blocks.forEach(block => {
                 if (!processedBlocks.has(block.id)) {
                     counts.unassigned++;
+                    portCounts.unassigned++;
                 }
             });
-            
-            // Display counts
-            const items = [];
             
             // Calculate pixels per panel (ensure we have valid numbers)
             const width = parseInt(panelWidth) || 480;
             const height = parseInt(panelHeight) || 270;
             const pixelsPerPanel = width * height;
             
+            // Helper function to calculate resolution for a set of blocks
+            const calculateResolution = (blockIds) => {
+                if (blockIds.length === 0) return '0 × 0';
+                
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+                
+                blockIds.forEach(blockId => {
+                    const block = blocks.find(b => b.id === blockId);
+                    if (block) {
+                        if (block.x < minX) minX = block.x;
+                        if (block.x > maxX) maxX = block.x;
+                        if (block.y < minY) minY = block.y;
+                        if (block.y > maxY) maxY = block.y;
+                    }
+                });
+                
+                // Calculate number of blocks in each dimension
+                const blocksWide = Math.floor((maxX - minX) / 80) + 1;
+                const blocksTall = Math.floor((maxY - minY) / 45) + 1;
+                
+                // Total resolution = blocks × panel dimensions
+                const totalWidth = blocksWide * width;
+                const totalHeight = blocksTall * height;
+                
+                return `${totalWidth} × ${totalHeight}`;
+            };
+            
+            // Get block IDs for each signal
+            const blocksBySignal = { unassigned: [] };
+            SIGNAL_COLORS.forEach(signal => {
+                blocksBySignal[signal.id] = [];
+            });
+            
+            // Assign blocks to signals
+            const assignedBlocks = new Set();
+            connections.forEach(conn => {
+                if (conn.color) {
+                    if (!assignedBlocks.has(conn.from)) {
+                        blocksBySignal[conn.color].push(conn.from);
+                        assignedBlocks.add(conn.from);
+                    }
+                    if (!assignedBlocks.has(conn.to)) {
+                        blocksBySignal[conn.color].push(conn.to);
+                        assignedBlocks.add(conn.to);
+                    }
+                }
+            });
+            
+            singleUnitChains.forEach(blockId => {
+                if (!assignedBlocks.has(blockId)) {
+                    const color = singleUnitColors[blockId];
+                    if (color) {
+                        blocksBySignal[color].push(blockId);
+                    } else {
+                        blocksBySignal.unassigned.push(blockId);
+                    }
+                    assignedBlocks.add(blockId);
+                }
+            });
+            
+            blocks.forEach(block => {
+                if (!assignedBlocks.has(block.id)) {
+                    blocksBySignal.unassigned.push(block.id);
+                }
+            });
+            
+            // Display counts
+            const items = [];
+            
             // Unassigned first
             if (counts.unassigned > 0) {
                 const totalPixels = advancedMode ? counts.unassigned * pixelsPerPanel : null;
+                const resolution = advancedMode ? calculateResolution(blocksBySignal.unassigned) : null;
+                
                 items.push(h('div', { key: 'unassigned', className: 'counter-item' },
                     h('div', { className: 'counter-color' },
                         h('div', { className: 'counter-dot', style: { background: '#94a3b8' }}),
@@ -1267,7 +1372,9 @@
                     ),
                     h('div', { style: { textAlign: 'right' }},
                         h('span', { className: 'counter-value' }, counts.unassigned + ' units'),
-                        advancedMode && totalPixels && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`)
+                        advancedMode && h('div', { className: 'pixel-count' }, `${portCounts.unassigned} ports`),
+                        advancedMode && totalPixels && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`),
+                        advancedMode && resolution && h('div', { className: 'pixel-count' }, resolution)
                     )
                 ));
             }
@@ -1276,6 +1383,8 @@
             SIGNAL_COLORS.forEach(signal => {
                 if (counts[signal.id] > 0) {
                     const totalPixels = advancedMode ? counts[signal.id] * pixelsPerPanel : null;
+                    const resolution = advancedMode ? calculateResolution(blocksBySignal[signal.id]) : null;
+                    
                     items.push(h('div', { key: signal.id, className: 'counter-item' },
                         h('div', { className: 'counter-color' },
                             h('div', { className: 'counter-dot', style: { background: signal.color }}),
@@ -1283,7 +1392,9 @@
                         ),
                         h('div', { style: { textAlign: 'right' }},
                             h('span', { className: 'counter-value' }, counts[signal.id] + ' units'),
-                            advancedMode && totalPixels && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`)
+                            advancedMode && h('div', { className: 'pixel-count' }, `${portCounts[signal.id]} ports`),
+                            advancedMode && totalPixels && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`),
+                            advancedMode && resolution && h('div', { className: 'pixel-count' }, resolution)
                         )
                     ));
                 }
@@ -1293,18 +1404,48 @@
             const totalPanels = blocks.length;
             const totalPixels = advancedMode ? totalPanels * pixelsPerPanel : 0;
             
+            // Calculate total ports
+            let totalPorts = portCounts.unassigned || 0;
+            SIGNAL_COLORS.forEach(signal => {
+                totalPorts += portCounts[signal.id] || 0;
+            });
+            
+            // Calculate total resolution (grid dimensions)
+            let totalResolution = '0 × 0';
+            if (blocks.length > 0 && advancedMode) {
+                let minX = Infinity, maxX = -Infinity;
+                let minY = Infinity, maxY = -Infinity;
+                
+                blocks.forEach(block => {
+                    if (block.x < minX) minX = block.x;
+                    if (block.x > maxX) maxX = block.x;
+                    if (block.y < minY) minY = block.y;
+                    if (block.y > maxY) maxY = block.y;
+                });
+                
+                // Calculate number of blocks in each dimension
+                const blocksWide = Math.floor((maxX - minX) / 80) + 1;
+                const blocksTall = Math.floor((maxY - minY) / 45) + 1;
+                
+                // Total resolution = blocks × panel dimensions
+                const totalWidth = blocksWide * width;
+                const totalHeight = blocksTall * height;
+                
+                totalResolution = `${totalWidth} × ${totalHeight}`;
+            }
+            
             return h(React.Fragment, null,
                 h('div', { className: 'counter-title' }, 'Signal Usage'),
                 items.length > 0 ? items : h('div', { style: { fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}, 'No blocks placed yet'),
                 
-                // Total panels (always show)
+                // Wall Summary
                 h('div', { style: { marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #334155' }},
-                    h('div', { className: 'counter-item' },
-                        h('div', { style: { fontWeight: '600', color: '#cbd5e1', fontSize: '11px' }}, 'Total Panels'),
-                        h('div', { style: { textAlign: 'right' }},
-                            h('span', { className: 'counter-value' }, totalPanels + ' units'),
-                            advancedMode && totalPixels > 0 && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`)
-                        )
+                    h('div', { style: { fontWeight: '600', color: '#f1f5f9', fontSize: '12px', marginBottom: '8px' }}, 'Wall Summary'),
+                    h('div', { style: { textAlign: 'right' }},
+                        h('span', { className: 'counter-value' }, totalPanels + ' units'),
+                        advancedMode && h('div', { className: 'pixel-count' }, `${totalPorts} ports`),
+                        advancedMode && totalPixels > 0 && h('div', { className: 'pixel-count' }, `${totalPixels.toLocaleString()} px`),
+                        advancedMode && blocks.length > 0 && h('div', { className: 'pixel-count' }, totalResolution)
                     )
                 )
             );
@@ -1537,43 +1678,6 @@
                                 },
                                 placeholder: '270'
                             })
-                        ),
-                        
-                        // Total Resolution display
-                        h('div', { className: 'dimensions-display', style: { marginTop: '12px' } },
-                            h('div', { className: 'dimensions-label' }, 'Total Resolution'),
-                            h('div', { className: 'dimensions-value' }, 
-                                (() => {
-                                    // Calculate total resolution based on blocks and panel dimensions
-                                    if (blocks.length === 0) {
-                                        return '0 × 0';
-                                    }
-                                    
-                                    const width = parseInt(panelWidth) || 480;
-                                    const height = parseInt(panelHeight) || 270;
-                                    
-                                    // Find the grid dimensions (how many blocks wide and tall)
-                                    let minX = Infinity, maxX = -Infinity;
-                                    let minY = Infinity, maxY = -Infinity;
-                                    
-                                    blocks.forEach(block => {
-                                        if (block.x < minX) minX = block.x;
-                                        if (block.x > maxX) maxX = block.x;
-                                        if (block.y < minY) minY = block.y;
-                                        if (block.y > maxY) maxY = block.y;
-                                    });
-                                    
-                                    // Calculate number of blocks in each dimension
-                                    const blocksWide = Math.floor((maxX - minX) / 80) + 1;
-                                    const blocksTall = Math.floor((maxY - minY) / 45) + 1;
-                                    
-                                    // Total resolution = blocks × panel dimensions
-                                    const totalWidth = blocksWide * width;
-                                    const totalHeight = blocksTall * height;
-                                    
-                                    return `${totalWidth} × ${totalHeight}`;
-                                })()
-                            )
                         )
                     )
                 ),
